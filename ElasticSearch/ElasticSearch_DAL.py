@@ -1,6 +1,8 @@
-from dotenv import find_dotenv, load_dotenv
 from elasticsearch import Elasticsearch, helpers
+from dotenv import find_dotenv, load_dotenv
 import os
+
+
 
 class Elastic:
 
@@ -48,3 +50,38 @@ class Elastic:
         if self.connection:
             self.connection.close()
             self.connection = None
+
+    def insert_one(self, doc):
+        connection = self.open_connection()
+
+        connection.index(index=self.IndexName, body=doc)
+
+        self.close_connection()
+
+    def search_word_in_text(self, word):
+        connection = self.open_connection()
+
+        query = {
+            "query": {
+                "match": {
+                    "text": word
+                }
+            }
+        }
+        result = connection.search(index=self.IndexName, body=query)
+
+        self.close_connection()
+        return result
+
+    def delete_list_of_docs(self, docs):
+        connection = self.open_connection()
+
+        new_docs = []
+        for doc in docs:
+            new_docs.append({
+                '_op_type': 'delete',
+                '_index': self.IndexName,
+                '_id': doc['_id']
+            })
+
+        helpers.bulk(connection, new_docs)
